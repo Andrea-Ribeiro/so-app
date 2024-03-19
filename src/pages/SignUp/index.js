@@ -1,13 +1,26 @@
-import { useState } from 'react';
+import { useState, useContext } from 'react';
 import {Link} from 'react-router-dom'
 import '../SignIn/signin.css';
 import logo from '../../assets/logo.png'
+import { AuthContext } from '../../contexts/auth';
 
 
 export default function  SignUp(){
     const [name, setName] = useState('')
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
+
+    const { signUp, loadingAuth } = useContext(AuthContext);
+
+    function handleSubmit(event){
+        event.preventDefault();
+        if(name && email && password){
+            signUp(name, email, password)
+        }
+        else{
+            alert('Preencha todos os campos!')
+        }
+    }
 
     return(
         <div className='container-center'>
@@ -16,7 +29,7 @@ export default function  SignUp(){
                     <img src={logo} alt='Logo do sistema'/>
                 </div>
 
-                <form >
+                <form onSubmit={handleSubmit}>
                     <h1>Cadastrar</h1>
                     <input 
                     type='text'
@@ -37,7 +50,9 @@ export default function  SignUp(){
                     onChange={(e) => setPassword(e.target.value)}
                     />
 
-                    <button type='submit'>Cadastrar</button>
+                    <button type='submit'>
+                        {loadingAuth ? 'Carregando...' : 'Cadastrar'}
+                    </button>
                 </form>
                 <Link to="/">Já possui uma conta? Faça login!</Link>
             </div>
