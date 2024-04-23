@@ -6,18 +6,87 @@ import { FiSettings, FiUpload } from 'react-icons/fi'
 import avatar from '../../assets/avatar.png'
 import { AuthContext } from '../../contexts/auth'
 
+import { doc, updateDoc} from 'firebase/firestore'
+import {db, storage} from '../../services/firebaseConnection'
+import {ref, uploadBytes, getDownloadURL} from 'firebase/storage'
+
+import { toast } from 'react-toastify'
+
 import './profile.css'
 
 export default function Profile(){
 
-    const { user, logout } = useContext(AuthContext);
+    const { user, storageUser, setUser, logout } = useContext(AuthContext);
 
     const [avatarUrl, setAvatarUrl] = useState(user.avatarUrl || avatar)
-    const [name, setName] = useState(user.nome)
+    const [avatarImage, setAvatarImage] = useState(null)
+    const [name, setName] = useState(user?.nome)
 
-    async function handleLogout(){
-        await logout();
+    function handleFile(e){
+       const image =e.target.files[0]
+
+       if(image?.type ==='image/jpeg' || image?.type === 'image/png'){
+        setAvatarImage(image)
+        setAvatarUrl(URL.createObjectURL(image))
+       }
+       else{
+        toast.error("Tipo de imagem incorreto...")
+        setAvatarImage(null);
+        return;
+       }
     }
+
+    async function handleUpload(){
+        const currentUid = user.uid
+
+        const uploadRef = ref(storage, `images/${currentUid}/${avatarImage.name}`)
+
+        const snapshot = await uploadBytes(uploadRef, avatarImage).then((snapshot)=>{
+            getDownloadURL(snapshot.ref).then(async (downloadURL)=>{
+                let urlFoto = downloadURL;
+
+                const docRef = doc(db, "users", user.uid)
+                await updateDoc(docRef, {
+                    avatarUrl: urlFoto,
+                })
+                .then(()=>{
+                    let data = {
+                        ...user, 
+                        avatarUrl: urlFoto,
+                    }
+                    setUser(data);
+                    storageUser(data);
+                    toast.success('Dados atualizados com sucesso')
+                })
+                .catch(()=>toast.error("Erro ao atualizar dados.\nTente novamente!"))
+            })
+        })
+    }
+
+    async function handleSubmit(e){
+        e.preventDefault();
+            let payload = {}
+
+            if(avatarImage){
+                handleUpload()
+            }
+            if(!avatarImage && name !== ''){
+                const docRef = doc(db, "users", user.uid)
+                await updateDoc(docRef, payload)
+                .then(()=>{
+                    let data = {
+                        ...user, 
+                        nome: name,
+                    }
+                    setUser(data);
+                    storageUser(data);
+                    toast.success('Dados atualizados com sucesso')
+                })
+                .catch(()=>toast.error("Erro ao atualizar dados.\nTente novamente!"))
+            }
+    }
+        
+    
 
     return(
         <div>
@@ -30,28 +99,38 @@ export default function Profile(){
 
                 <div className='container'>
 
-                    <form className='form-profile'>
+                    <form className='form-profile' onSubmit={handleSubmit}>
                         <label className='label-avatar'>
                             <span>
                                 <FiUpload color='#FFF' size={25} />
                             </span>
 
-                            <input type='file' accept='image/*'/> <br/>
+                            <input 
+                                type='file'
+                                name="image" 
+                                accept='image/*' 
+                                onChange={handleFile}/> 
+                             <br/>
                             <img src={avatarUrl} alt="Foto de perfil" width={250} height={250}/>
                         </label>
 
                         <label>Nome</label>
-                        <input type='text' placeholder='Seu nome' value={name}/>
+                        <input 
+                        type='text' 
+                        name="nome" 
+                        value={name} 
+                        onChange={ e => setName(e.target.value)}
+                        />
 
                         <label>Email</label>
-                        <input type='email' placeholder='nome@nome.com' disabled={true} value={user.email}/>
+                        <input type='email'  disabled={true} defaultValue={user?.email}/>
 
                         <button type='submit'>salvar</button>
                     </form>
                 </div>
 
                 <div className='container'>
-                <button className='logout-btn' onClick={handleLogout}>Terminar sessão</button>
+                <button className='logout-btn' onClick={() => logout()}>Sair</button>
                 </div>
             </div>
         </div>

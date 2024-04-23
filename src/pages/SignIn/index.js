@@ -41,7 +41,7 @@ export default function  SignIn(){
                     onChange={(e) => setPassword(e.target.value)}
                     />
 
-                    <button type='submit'>{loadingAuth ? "caregando..." : "Acessar"}</button>
+                    <button type='submit'>{loadingAuth ? "carregando..." : "Acessar"}</button>
                 </form>
                 <Link to="/register">Criar uma conta</Link>
             </div>
