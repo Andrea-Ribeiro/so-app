@@ -1,19 +1,85 @@
-import { useState } from 'react'
+import { useState, useEffect, useContext } from 'react'
 
 import Title from "../../components/Title"
 import Header from "../../components/header"
 import { FiPlusCircle } from "react-icons/fi"
 
+import { collection, getDocs, addDoc } from 'firebase/firestore'
+import { db } from '../../services/firebaseConnection'
+import { AuthContext } from '../../contexts/auth'
+
+import { toast } from 'react-toastify'
+
+
 import './new.css'
 
+const Assunto = [
+    {'name': 'Suporte','value': 'suporte'},
+    {'name': 'Visita Técnica','value': 'visita tecnica'},
+    {'name': 'Financeiro','value': 'financeiro'}
+]
+
 export default function New(){
-    const [customers, setCustomers] = ([])
+    const { user } = useContext(AuthContext)
+    const [customers, setCustomers] = useState([])
     const [complemento, setComplemento] = useState('')
     const [assunto, setAssunto] = useState('Suporte')
     const [status, setStatus] = useState('aberto')
+    const [loadingCustomers, setLoadingCustomers] = useState(true)
+    const [customerSelected, setCustomerSelected] = useState(0)
+ 
+    const collectionRef = collection(db,'customers')
+
+    useEffect(() => {
+        async function getCustomers(){
+            let list = []
+            await getDocs(collectionRef)
+            .then(snapshot => {
+                let data = {}
+                snapshot.docs.forEach(doc => {
+                    data  = doc.data()
+                    data.id = doc.id
+                   list.push(data)
+                })
+                setCustomers(list)
+                setLoadingCustomers(false)
+            })
+            .catch(() => { 
+                toast.error("Ocorreu algum erro!\nTente novamente.")
+                setLoadingCustomers(false)})
+        }
+        getCustomers();
+    }, [])
 
     function  handleOptionChange(e){
         setStatus(e.target.value)
+    }
+
+    function handleCustomersChange(e){
+        setCustomerSelected(customers.find(item => item.id === e.target.value))
+    }
+
+    async function handleSubmit(e){
+        e.preventDefault();
+        let payload = {
+            'client': customerSelected,
+            'assunto': assunto,
+            'status': status,
+            'complemento': complemento,
+            'createdBy': user?.uid,
+            'createdDate': new Date()
+        }
+
+        await addDoc(collection(db, "chamados"), payload)
+        .then(()=>{
+            toast.success("Chamado registrado!")
+            setComplemento('')
+            setCustomerSelected(0)
+            setAssunto('Suporte')
+        })
+        .catch(err => {
+            toast.error('Ocorreu algum erro!\nTente novamente.')
+        })
     }
 
     return(
@@ -25,19 +91,30 @@ export default function New(){
                 </Title>
 
                 <div className="container">
-                    <form className="form-profile">
+                    <form className="form-profile" onSubmit={handleSubmit}>
                         
                         <label>Clientes</label>
-                        <select>
-                            <option key={1} value={1}>Mercado Livre</option>
-                            <option key={2} value={2}>Loja informática</option>
-                        </select>
+                        {loadingCustomers ? (
+                        <input type='text' disabled={true}  value='Carregando...'/>)
+                        : (
+                        <select value={customerSelected} onChange={handleCustomersChange}>
+                            {customers?.map((item, index) => {
+                                return(
+                                <option key={index} value={item?.id}>{item?.nomeFantasia}</option>
+                                )
+                            }
+                            )}
+                        </select>)
+                        }
 
                         <label>Assunto</label>
-                        <select>
-                            <option value="suporte">Suporte</option>
-                            <option value="visita tecnica">Visita Técnica</option>
-                            <option value="financeiro">Financeiro</option>
+                        <select value={assunto} onChange={(e)=>setAssunto(e.target.value)}>
+                            {Assunto.map((item, index) => {
+                                return(
+                                    <option key={index}>{item?.name}</option>
+                                )
+                            })}
+                        
                         </select>
 
                         <label>Status</label>
