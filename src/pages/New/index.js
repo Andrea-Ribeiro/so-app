@@ -26,7 +26,8 @@ export default function New(){
     const [assunto, setAssunto] = useState('Suporte')
     const [status, setStatus] = useState('aberto')
     const [loadingCustomers, setLoadingCustomers] = useState(true)
-    const [customerSelected, setCustomerSelected] = useState(0)
+    const [customerSelected, setCustomerSelected] = useState(null)
+    console.log('teste', customers)
  
     const collectionRef = collection(db,'customers')
 
@@ -42,6 +43,7 @@ export default function New(){
                    list.push(data)
                 })
                 setCustomers(list)
+                setCustomerSelected(list[0])
                 setLoadingCustomers(false)
             })
             .catch(() => { 

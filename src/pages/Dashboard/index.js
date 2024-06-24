@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react"
 import { Link } from "react-router-dom";
+import { format } from "date-fns";
 
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, orderBy, limit, startAfter, query } from "firebase/firestore";
 import { db } from "../../services/firebaseConnection";
 
 import Header from "../../components/header";
@@ -15,30 +16,48 @@ import { toast } from "react-toastify";
 export default function Dashboard(){
     const collectionRef = collection(db, 'chamados')
     const [chamados, setChamados] = useState([])
-
+    const [loading, setLoading] = useState(true)
+    const [isEmpty, setIsEmpty] = useState(false)
+    const [lastDoc, setLastDoc] = useState()
+    const [loadingMore, setLoadingMore] = useState(false)
+ 
     useEffect(()=>{
         getOrders();
     }, []);
 
-    async function getOrders(){
-        let list = [];
-        await getDocs(collectionRef)
-        .then((snapshot) => { 
-            snapshot.forEach(
-                (item) => list.push(item.data()),
-            )
-            setChamados(list)
-        })
-        .catch((err)=> {
-            toast.error("Ocorreu algum erro!\nTente novamente.")
-        })
+    async function getOrders(more=null){
+        const q = query(collectionRef, orderBy('createdDate', 'desc'), limit(1));
+
+        const querySnapshot = await getDocs(q)
+        setChamados([]);
+        await updateState(querySnapshot)
+        setLoading(false);
+       
     }
 
-    function convertDate(timestamp){
-        let date = timestamp.toDate()
-        return date.toLocaleDateString('pt-BR');
+    async function getMore(){
+        setLoadingMore(true);
+        const q =query(collectionRef, orderBy('createdDate', 'desc'), limit(1), startAfter(lastDoc));
+        const querySnapshot = await getDocs(q)
+        await updateState(querySnapshot)
     }
-    
+
+    async function updateState(querySnapshot){
+        const isCollectionEmpty = querySnapshot.size === 0;
+
+        if (!isCollectionEmpty){
+            let lista = [];
+            querySnapshot.forEach(
+                (doc) => lista.push(doc.data()),
+            )
+
+            setChamados(chamados => [...chamados, ...lista])
+            setLastDoc(querySnapshot.docs[querySnapshot.docs.length - 1])
+        }else{
+            setIsEmpty(true);
+        }
+        setLoadingMore(false);
+    }
 
     return(
         <div>
@@ -49,12 +68,18 @@ export default function Dashboard(){
             </Title>
 
             <>
-                <Link to="/new" className="new">
-                    <FiPlus color="#FFF" size={25}/>
-                    Novo chamado
-                </Link>
+            {loading  && (
+                <div className="container dashboard">
+                    <span> Loading...</span>
+                </div>)
+                }
 
-            {chamados.length > 0 && (
+            {!loading && chamados.length > 0 && (
+                <>
+                <Link to="/new" className="new">
+                <FiPlus color="#FFF" size={25}/>
+                Novo chamado
+            </Link>
                  <table>
                  <thead>
                      <tr>
@@ -72,11 +97,11 @@ export default function Dashboard(){
                                  <td data-label="Cliente">{item?.client?.nomeFantasia}</td>
                                  <td data-label="Assunto">{item?.assunto}</td>
                                  <td data-label="Status" >
-                                     <span className="badge" style={{backgroundColor: '#999'}}>
+                                     <span className="badge" style={{backgroundColor: item.status === 'aberto' ? '#5cb85c' : '#999'}}>
                                      {item?.status}
                                      </span>
                                  </td>
-                                 <td data-label="Cadastrado">{convertDate(item?.createdDate)}</td>
+                                 <td data-label="Cadastrado">{format(item?.createdDate.toDate(), 'dd/MM/yyy')}</td>
                                  <td data-label="#">
                                      <button className="action" style={{backgroundColor: '#3583f6'}}>
                                          <FiSearch color="#FFF" size={17}/>
@@ -91,6 +116,8 @@ export default function Dashboard(){
                    
                  </tbody>
              </table>
+              {!loadingMore && !isEmpty && <button className="btn-more" onClick={()=>getMore()}>Buscar mais...</button>}
+             </>
             )}
                
             </>
