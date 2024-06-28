@@ -20,6 +20,8 @@ export default function Dashboard(){
     const [isEmpty, setIsEmpty] = useState(false)
     const [lastDoc, setLastDoc] = useState()
     const [loadingMore, setLoadingMore] = useState(false)
+    const [openModal, setOpenModal] = useState(false)
+    const [order, setOrder] = useState({})
  
     useEffect(()=>{
         getOrders();
@@ -61,6 +63,11 @@ export default function Dashboard(){
             setIsEmpty(true);
         }
         setLoadingMore(false);
+    }
+
+    function toogleModal(item){
+       setOpenModal(!openModal);
+       setOrder(item);
     }
 
     return(
@@ -108,7 +115,7 @@ export default function Dashboard(){
                                  </td>
                                  <td data-label="Cadastrado">{format(item?.createdDate.toDate(), 'dd/MM/yyy')}</td>
                                  <td data-label="#">
-                                     <button className="action" style={{backgroundColor: '#3583f6'}}>
+                                     <button className="action" style={{backgroundColor: '#3583f6'}} onClick={()=> toogleModal(item)}>
                                          <FiSearch color="#FFF" size={17}/>
                                      </button>
                                      <Link to={`/new/${item?.id}`} className="action" style={{backgroundColor: '#f6a935'}}>
@@ -128,7 +135,7 @@ export default function Dashboard(){
             </>
            </div>
 
-           <Modal />
+           {openModal && <Modal data={order} close={()=>setOpenModal(!openModal)} />}
         </div>
     )
 }

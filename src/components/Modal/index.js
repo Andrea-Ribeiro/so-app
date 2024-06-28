@@ -1,13 +1,15 @@
 import './modal.css';
 import { FiX } from 'react-icons/fi'
+import { format } from "date-fns";
 
 
-export default function Modal(){
+export default function Modal({data, close}){
+
     return (
        
         <div className='modal'>
             <div className='container'>
-                <button className='close'>
+                <button className='close' onClick={close}>
                     <FiX size={25}/>
                     Voltar
                 </button>
@@ -17,31 +19,32 @@ export default function Modal(){
 
                     <div className='row'>
                         <span>
-                            Client: <i>Mercado</i>
+                            Client: <i>{data?.client?.nomeFantasia}</i>
                         </span>
                     </div>
 
                     <div className='row'>
                         <span>
-                            Assunto: <i>Suporte</i>
+                            Assunto: <i>{data?.assunto}</i>
                         </span>
                         <span>
-                            Cadastrado em : <i>22/08/2022</i>
+                            Cadastrado em : <i>{format(data?.createdDate.toDate(), 'dd/MM/yyy')}</i>
                         </span>
                     </div>
 
                     <div className='row'>
                         <span>
-                            Status: <i>Aberto</i>
+                            Status: 
+                            <i className='status-badge' style={{color: "#FFF", backgroundColor: data?.status === 'aberto' ? '#5cb85c' : '#999'}}>
+                                {(data?.status)[0].toUpperCase() + (data?.status).substring(1)}
+                                </i>
                         </span>
                     </div>
 
-                    <>
+                    {data?.complemento && (<>
                     <h3>Complemento</h3>
-                    <p>
-                        Aqui vai todo complemento do chamado Aqui vai todo complemento do chamado Aqui vai todo complemento do chamado Aqui vai todo complemento do chamado Aqui vai todo complemento do chamado
-                    </p>
-                    </>
+                        <p>{data?.complemento}</p>
+                    </>)}
                     
                 </main>
             </div>
