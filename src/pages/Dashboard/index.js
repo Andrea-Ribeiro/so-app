@@ -7,11 +7,11 @@ import { db } from "../../services/firebaseConnection";
 
 import Header from "../../components/header";
 import Title from "../../components/Title";
+import Modal from "../../components/Modal";
 
 import { FiPlus, FiMessageSquare, FiSearch, FiEdit2} from "react-icons/fi"
 
 import './dashboard.css'
-import { toast } from "react-toastify";
 
 export default function Dashboard(){
     const collectionRef = collection(db, 'chamados')
@@ -25,8 +25,8 @@ export default function Dashboard(){
         getOrders();
     }, []);
 
-    async function getOrders(more=null){
-        const q = query(collectionRef, orderBy('createdDate', 'desc'), limit(1));
+    async function getOrders(){
+        const q = query(collectionRef, orderBy('createdDate', 'desc'), limit(10));
 
         const querySnapshot = await getDocs(q)
         setChamados([]);
@@ -37,7 +37,7 @@ export default function Dashboard(){
 
     async function getMore(){
         setLoadingMore(true);
-        const q =query(collectionRef, orderBy('createdDate', 'desc'), limit(1), startAfter(lastDoc));
+        const q =query(collectionRef, orderBy('createdDate', 'desc'), limit(10), startAfter(lastDoc));
         const querySnapshot = await getDocs(q)
         await updateState(querySnapshot)
     }
@@ -48,7 +48,11 @@ export default function Dashboard(){
         if (!isCollectionEmpty){
             let lista = [];
             querySnapshot.forEach(
-                (doc) => lista.push(doc.data()),
+                (doc) => {
+                    let object = doc.data();
+                    object.id = doc.id;
+                    lista.push(object);
+                },
             )
 
             setChamados(chamados => [...chamados, ...lista])
@@ -74,12 +78,13 @@ export default function Dashboard(){
                 </div>)
                 }
 
-            {!loading && chamados.length > 0 && (
-                <>
-                <Link to="/new" className="new">
+            {!loading && <Link to="/new" className="new">
                 <FiPlus color="#FFF" size={25}/>
                 Novo chamado
-            </Link>
+            </Link>}
+
+            {!loading && chamados.length > 0 && (
+                <>
                  <table>
                  <thead>
                      <tr>
@@ -106,9 +111,9 @@ export default function Dashboard(){
                                      <button className="action" style={{backgroundColor: '#3583f6'}}>
                                          <FiSearch color="#FFF" size={17}/>
                                      </button>
-                                     <button className="action" style={{backgroundColor: '#f6a935'}}>
+                                     <Link to={`/new/${item?.id}`} className="action" style={{backgroundColor: '#f6a935'}}>
                                          <FiEdit2 color="#FFF" size={17}/>
-                                     </button>
+                                     </Link>
                                  </td>
                           </tr>
                          )
@@ -122,6 +127,8 @@ export default function Dashboard(){
                
             </>
            </div>
+
+           <Modal />
         </div>
     )
 }
